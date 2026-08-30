@@ -1,7 +1,7 @@
 export const site = {
 	title: '虾基尔车',
 	description: '在读硕士。',
-	url: 'https://example.com',
+	url: 'https://xiajierche-blog.pages.dev',
 };
 
 export function formatDate(date: Date) {
