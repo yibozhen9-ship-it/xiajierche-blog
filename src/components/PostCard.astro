@@ -13,6 +13,7 @@ const { post, featured = false } = Astro.props;
 		<p>{post.data.description}</p>
 	</div>
 	<div class="tags" aria-label="文章标签">
+		<span class="tag">{post.data.category}</span>
 		{post.data.tags.map((tag) => <span class="tag">{tag}</span>)}
 	</div>
 </a>

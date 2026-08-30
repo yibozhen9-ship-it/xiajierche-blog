@@ -5,22 +5,24 @@ import { site } from '../lib/site';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 const posts = (await getCollection('blog', ({ data }) => !data.draft)).sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
-const [featured, ...rest] = posts;
+const dailyPosts = posts.filter((post) => post.data.category === '日常');
+const miscPosts = posts.filter((post) => post.data.category === '杂七杂八');
 ---
 
 <BaseLayout>
 	<div class="shell">
 		<section class="page-intro">
 			<span class="eyebrow">个人博客</span>
-			<h1>{site.title}</h1>
+			<h1>卧室嫩爹</h1>
 			<p>{site.description}</p>
 		</section>
-		{featured && <PostCard post={featured} featured />}
-		{rest.length > 0 && (
-			<section aria-labelledby="latest-title">
-				<div class="section-heading"><h2 id="latest-title">最近更新</h2><a href="/blog/">查看全部文章 →</a></div>
-				<div class="post-list">{rest.map((post) => <PostCard post={post} />)}</div>
-			</section>
-		)}
+		<section aria-labelledby="daily-title">
+			<div class="section-heading"><h2 id="daily-title">日常</h2><a href="/blog/daily/">查看日常 →</a></div>
+			{dailyPosts.length ? <div class="post-list">{dailyPosts.map((post) => <PostCard post={post} />)}</div> : <p class="empty-state">还没有日常记录。</p>}
+		</section>
+		<section aria-labelledby="misc-title">
+			<div class="section-heading"><h2 id="misc-title">杂七杂八</h2><a href="/blog/misc/">查看全部 →</a></div>
+			{miscPosts.length ? <div class="post-list">{miscPosts.map((post) => <PostCard post={post} />)}</div> : <p class="empty-state">还没有杂七杂八。</p>}
+		</section>
 	</div>
 </BaseLayout>

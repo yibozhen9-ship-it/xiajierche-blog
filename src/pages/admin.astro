@@ -19,7 +19,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 			<form id="post-form">
 				<div class="form-grid"><label>标题<input name="title" maxlength="120" required /></label><label>发布日期<input name="pubDate" type="date" required /></label></div>
 				<label>一句话简介<input name="description" maxlength="240" required /></label>
-				<div class="form-grid"><label>标签（用逗号隔开）<input name="tags" placeholder="生活, 阅读" /></label><label>英文链接名<input name="slug" pattern="[A-Za-z0-9-]+" placeholder="new-semester" required /></label></div>
+				<div class="form-grid"><label>分类<select name="category"><option value="daily">日常</option><option value="misc">杂七杂八</option></select></label><label>标签（用逗号隔开）<input name="tags" placeholder="生活, 阅读" /></label><label>英文链接名<input name="slug" pattern="[A-Za-z0-9-]+" placeholder="new-semester" required /></label></div>
 				<label>正文（支持 Markdown）<textarea name="content" rows="18" placeholder="从这里开始写文章…" required></textarea></label>
 				<button type="submit">发布文章</button>
 			</form>
@@ -99,7 +99,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 	.panel p { color: var(--muted); }
 	form { display: grid; gap: 18px; }
 	label { display: grid; gap: 7px; color: var(--muted); font-size: .92rem; }
-	input, textarea { box-sizing: border-box; width: 100%; border: 1px solid var(--line); border-radius: 7px; background: #fffdfa; color: var(--ink); font: inherit; padding: 11px 12px; }
+	input, textarea, select { box-sizing: border-box; width: 100%; border: 1px solid var(--line); border-radius: 7px; background: #fffdfa; color: var(--ink); font: inherit; padding: 11px 12px; }
 	textarea { line-height: 1.7; resize: vertical; }
 	button { width: fit-content; border: 0; border-radius: 7px; background: var(--ink); color: #fff; cursor: pointer; font: inherit; padding: 11px 17px; }
 	button.quiet { background: var(--paper-deep); color: var(--ink); }

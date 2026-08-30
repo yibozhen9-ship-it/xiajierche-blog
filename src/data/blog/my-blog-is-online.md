@@ -2,6 +2,7 @@
 title: 个人博客制作与发布流程
 description: 由 ChatGPT 整理：从本地文件到公开网址的建站与更新流程。
 pubDate: 2026-08-30
+category: 杂七杂八
 tags: [记录, 博客]
 ---
 

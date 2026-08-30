@@ -1,6 +1,6 @@
 export const site = {
 	title: '虾基尔车',
-	description: '在读硕士。',
+	description: '工科在读硕士。',
 	url: 'https://xiajierche-blog.pages.dev',
 };
 

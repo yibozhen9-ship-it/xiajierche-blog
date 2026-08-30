@@ -10,6 +10,7 @@ const blog = defineCollection({
 		pubDate: z.coerce.date(),
 		updatedDate: z.coerce.date().optional(),
 		tags: z.array(z.string()).default([]),
+		category: z.enum(['日常', '杂七杂八']).default('杂七杂八'),
 		draft: z.boolean().default(false),
 	}),
 });
