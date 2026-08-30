@@ -1,0 +1,18 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { formatDate } from '../lib/site';
+
+interface Props { post: CollectionEntry<'blog'>; featured?: boolean; }
+const { post, featured = false } = Astro.props;
+---
+
+<a class:list={['post-card', { featured }]} href={`/blog/${post.id}/`}>
+	<div>
+		<p class="post-date">{formatDate(post.data.pubDate)}</p>
+		<h2>{post.data.title}</h2>
+		<p>{post.data.description}</p>
+	</div>
+	<div class="tags" aria-label="文章标签">
+		{post.data.tags.map((tag) => <span class="tag">{tag}</span>)}
+	</div>
+</a>
