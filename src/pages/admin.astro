@@ -16,6 +16,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 		<section id="editor-panel" class="panel" hidden>
 			<div class="editor-heading"><div><h2>新文章</h2><p>发布后会自动交给 Cloudflare 更新网站。</p></div><button id="logout" class="quiet" type="button">退出登录</button></div>
+			<label class="token-field">GitHub 发布凭证（仅当发布提示需要时填写）<input id="github-token" type="password" autocomplete="off" placeholder="粘贴 GitHub token；本页不会保存它" /></label>
+			<p class="token-note">凭证只会通过加密连接用于本次上传，不会写入文章、浏览器或网站代码。</p>
 			<form id="post-form">
 				<div class="form-grid"><label>标题<input name="title" maxlength="120" required /></label><label>发布日期<input name="pubDate" type="date" required /></label></div>
 				<label>一句话简介<input name="description" maxlength="240" required /></label>
@@ -37,6 +39,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 	const status = document.querySelector('#status');
 	const content = document.querySelector('textarea[name="content"]');
 	const date = document.querySelector('input[name="pubDate"]');
+	const githubToken = document.querySelector('#github-token');
 
 	date.value = new Date().toISOString().slice(0, 10);
 	function tell(message, problem = false) {
@@ -72,7 +75,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 	document.querySelector('#image-form').addEventListener('submit', async (event) => {
 		event.preventDefault(); tell('正在上传图片…');
 		try {
-			const data = await request('/api/uploads', { method: 'POST', body: new FormData(event.currentTarget) });
+			const uploadData = new FormData(event.currentTarget);
+			uploadData.set('githubToken', githubToken.value);
+			const data = await request('/api/uploads', { method: 'POST', body: uploadData });
 			const markdown = `\n\n![图片说明](${data.path})\n\n`;
 			content.setRangeText(markdown, content.selectionStart, content.selectionEnd, 'end');
 			tell('图片已上传，已把插图代码放进正文。请把“图片说明”改成图片内容。'); event.currentTarget.reset();
@@ -84,6 +89,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 		const form = new FormData(event.currentTarget);
 		const data = Object.fromEntries(form);
 		data.tags = String(data.tags).split(/[,，]/).map((tag) => tag.trim()).filter(Boolean);
+		data.githubToken = githubToken.value;
 		tell('正在发布文章…');
 		try {
 			const result = await request('/api/posts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) });
@@ -100,6 +106,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 	form { display: grid; gap: 18px; }
 	label { display: grid; gap: 7px; color: var(--muted); font-size: .92rem; }
 	input, textarea, select { box-sizing: border-box; width: 100%; border: 1px solid var(--line); border-radius: 7px; background: #fffdfa; color: var(--ink); font: inherit; padding: 11px 12px; }
+	.token-field { margin-bottom: 6px; }
+	.token-note { margin: -9px 0 22px !important; font-size: .82rem; }
 	textarea { line-height: 1.7; resize: vertical; }
 	button { width: fit-content; border: 0; border-radius: 7px; background: var(--ink); color: #fff; cursor: pointer; font: inherit; padding: 11px 17px; }
 	button.quiet { background: var(--paper-deep); color: var(--ink); }

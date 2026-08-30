@@ -14,13 +14,14 @@ function contentUrl(path) {
 	return `https://api.github.com/repos/${REPOSITORY}/contents/${path.split('/').map(encodeURIComponent).join('/')}`;
 }
 
-export async function writeFile(env, path, content, message) {
-	if (!env.GITHUB_TOKEN) throw new Error('后台尚未完成 GitHub 配置。');
+export async function writeFile(env, path, content, message, oneTimeToken = '') {
+	const token = env.GITHUB_TOKEN || oneTimeToken;
+	if (!token) throw new Error('请粘贴一次 GitHub 发布凭证，或完成 Cloudflare 的 GitHub 配置。');
 	const response = await fetch(contentUrl(path), {
 		method: 'PUT',
 		headers: {
 			Accept: 'application/vnd.github+json',
-			Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+			Authorization: `Bearer ${token}`,
 			'Content-Type': 'application/json',
 			'X-GitHub-Api-Version': '2026-03-10',
 		},
