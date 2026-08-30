@@ -1,0 +1,113 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="写作后台" description="个人博客写作后台">
+	<div class="shell admin-shell">
+		<section class="page-intro"><span class="eyebrow">写作后台</span><h1>发布新文章</h1><p>仅限网站管理员使用。</p></section>
+
+		<section id="login-panel" class="panel">
+			<h2>登录</h2>
+			<form id="login-form">
+				<label>后台密码<input name="password" type="password" autocomplete="current-password" required /></label>
+				<button type="submit">进入后台</button>
+			</form>
+		</section>
+
+		<section id="editor-panel" class="panel" hidden>
+			<div class="editor-heading"><div><h2>新文章</h2><p>发布后会自动交给 Cloudflare 更新网站。</p></div><button id="logout" class="quiet" type="button">退出登录</button></div>
+			<form id="post-form">
+				<div class="form-grid"><label>标题<input name="title" maxlength="120" required /></label><label>发布日期<input name="pubDate" type="date" required /></label></div>
+				<label>一句话简介<input name="description" maxlength="240" required /></label>
+				<div class="form-grid"><label>标签（用逗号隔开）<input name="tags" placeholder="生活, 阅读" /></label><label>英文链接名<input name="slug" pattern="[A-Za-z0-9-]+" placeholder="new-semester" required /></label></div>
+				<label>正文（支持 Markdown）<textarea name="content" rows="18" placeholder="从这里开始写文章…" required></textarea></label>
+				<button type="submit">发布文章</button>
+			</form>
+
+			<hr />
+			<form id="image-form"><label>给文章上传配图<input name="image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" required /></label><button type="submit" class="quiet">上传图片并插入正文</button></form>
+			<p id="status" class="status" aria-live="polite"></p>
+		</section>
+	</div>
+</BaseLayout>
+
+<script>
+	const loginPanel = document.querySelector('#login-panel');
+	const editorPanel = document.querySelector('#editor-panel');
+	const status = document.querySelector('#status');
+	const content = document.querySelector('textarea[name="content"]');
+	const date = document.querySelector('input[name="pubDate"]');
+
+	date.value = new Date().toISOString().slice(0, 10);
+	function tell(message, problem = false) {
+		status.textContent = message;
+		status.classList.toggle('problem', problem);
+	}
+	function showEditor(authenticated) {
+		loginPanel.hidden = authenticated;
+		editorPanel.hidden = !authenticated;
+	}
+	async function request(url, options = {}) {
+		const response = await fetch(url, options);
+		const data = await response.json().catch(() => ({}));
+		if (!response.ok) throw new Error(data.error || '操作没有完成。');
+		return data;
+	}
+
+	request('/api/session').then((data) => showEditor(data.authenticated)).catch(() => showEditor(false));
+
+	document.querySelector('#login-form').addEventListener('submit', async (event) => {
+		event.preventDefault();
+		const form = new FormData(event.currentTarget);
+		try {
+			await request('/api/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: form.get('password') }) });
+			showEditor(true); tell('登录成功。'); event.currentTarget.reset();
+		} catch (error) { tell(error.message, true); }
+	});
+
+	document.querySelector('#logout').addEventListener('click', async () => {
+		await request('/api/logout', { method: 'POST' }); showEditor(false); tell('已退出登录。');
+	});
+
+	document.querySelector('#image-form').addEventListener('submit', async (event) => {
+		event.preventDefault(); tell('正在上传图片…');
+		try {
+			const data = await request('/api/uploads', { method: 'POST', body: new FormData(event.currentTarget) });
+			const markdown = `\n\n![图片说明](${data.path})\n\n`;
+			content.setRangeText(markdown, content.selectionStart, content.selectionEnd, 'end');
+			tell('图片已上传，已把插图代码放进正文。请把“图片说明”改成图片内容。'); event.currentTarget.reset();
+		} catch (error) { tell(error.message, true); }
+	});
+
+	document.querySelector('#post-form').addEventListener('submit', async (event) => {
+		event.preventDefault();
+		const form = new FormData(event.currentTarget);
+		const data = Object.fromEntries(form);
+		data.tags = String(data.tags).split(/[,，]/).map((tag) => tag.trim()).filter(Boolean);
+		tell('正在发布文章…');
+		try {
+			const result = await request('/api/posts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) });
+			tell(`文章已发送。大约一分钟后可在 ${result.url} 查看。`); event.currentTarget.reset(); date.value = new Date().toISOString().slice(0, 10);
+		} catch (error) { tell(error.message, true); }
+	});
+</script>
+
+<style>
+	.admin-shell { padding-bottom: 72px; }
+	.panel { max-width: 760px; padding: 30px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255, 255, 255, .42); }
+	.panel h2 { margin-top: 0; font-family: var(--serif); font-size: 1.8rem; }
+	.panel p { color: var(--muted); }
+	form { display: grid; gap: 18px; }
+	label { display: grid; gap: 7px; color: var(--muted); font-size: .92rem; }
+	input, textarea { box-sizing: border-box; width: 100%; border: 1px solid var(--line); border-radius: 7px; background: #fffdfa; color: var(--ink); font: inherit; padding: 11px 12px; }
+	textarea { line-height: 1.7; resize: vertical; }
+	button { width: fit-content; border: 0; border-radius: 7px; background: var(--ink); color: #fff; cursor: pointer; font: inherit; padding: 11px 17px; }
+	button.quiet { background: var(--paper-deep); color: var(--ink); }
+	.form-grid, .editor-heading { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+	.editor-heading { align-items: start; margin-bottom: 22px; }
+	.editor-heading .quiet { justify-self: end; }
+	hr { border: 0; border-top: 1px solid var(--line); margin: 32px 0; }
+	.status { min-height: 1.5em; margin: 20px 0 0; color: var(--accent); }
+	.status.problem { color: #a23d2b; }
+	@media (max-width: 680px) { .panel { padding: 22px; } .form-grid, .editor-heading { grid-template-columns: 1fr; } .editor-heading .quiet { justify-self: start; } }
+</style>
