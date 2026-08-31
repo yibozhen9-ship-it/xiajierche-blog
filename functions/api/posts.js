@@ -27,7 +27,13 @@ export async function onRequestGet({ request, env }) {
 				slug: file.name.slice(0, -3),
 			}));
 		}));
-		return json({ posts: groups.flat().sort((left, right) => right.slug.localeCompare(left.slug)) });
+		const rootFiles = await listFiles(env, 'src/data/blog');
+		const rootPosts = rootFiles.filter((file) => file.type === 'file' && typeof file.name === 'string' && file.name.endsWith('.md')).map((file) => ({
+			category: 'root',
+			categoryName: '早期文章',
+			slug: file.name.slice(0, -3),
+		}));
+		return json({ posts: [...groups.flat(), ...rootPosts].sort((left, right) => right.slug.localeCompare(left.slug)) });
 	} catch (error) {
 		return json({ error: error instanceof Error ? error.message : '无法读取文章列表。' }, 500);
 	}
@@ -62,10 +68,11 @@ export async function onRequestDelete({ request, env }) {
 	try {
 		const data = await request.json();
 		const categoryKey = safeText(data.category, 16);
-		const category = categories[categoryKey];
+		const category = categories[categoryKey] ?? (categoryKey === 'root' ? '早期文章' : '');
 		const slug = validSlug(data.slug);
 		if (!category || !slug) return json({ error: '文章信息无效，删除已取消。' }, 400);
-		await deleteFile(env, `src/data/blog/${categoryKey}/${slug}.md`, `删除${category}：${slug}`);
+		const path = categoryKey === 'root' ? `src/data/blog/${slug}.md` : `src/data/blog/${categoryKey}/${slug}.md`;
+		await deleteFile(env, path, `删除${category}：${slug}`);
 		return json({ ok: true });
 	} catch (error) {
 		return json({ error: error instanceof Error ? error.message : '删除失败。' }, 500);

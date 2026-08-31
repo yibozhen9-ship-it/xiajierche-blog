@@ -56,7 +56,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 		if (!posts.length) { publishedPosts.textContent = '还没有已发布的文章。'; return; }
 		for (const post of posts) {
 			const row = document.createElement('div'); row.className = 'post-row';
-			const link = document.createElement('a'); link.href = `/blog/${post.category}/${post.slug}/`; link.textContent = `${post.categoryName} · ${post.slug}`; link.target = '_blank'; link.rel = 'noreferrer';
+			const link = document.createElement('a'); link.href = post.category === 'root' ? `/blog/${post.slug}/` : `/blog/${post.category}/${post.slug}/`; link.textContent = `${post.categoryName} · ${post.slug}`; link.target = '_blank'; link.rel = 'noreferrer';
 			const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'danger'; remove.textContent = '删除'; remove.dataset.category = post.category; remove.dataset.slug = post.slug;
 			row.append(link, remove); publishedPosts.append(row);
 		}
