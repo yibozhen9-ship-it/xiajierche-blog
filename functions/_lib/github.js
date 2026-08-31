@@ -23,6 +23,8 @@ export async function writeFile(env, path, content, message) {
 			Accept: 'application/vnd.github+json',
 			Authorization: `Bearer ${token}`,
 			'Content-Type': 'application/json',
+			// GitHub rejects REST API requests that do not identify the calling app.
+			'User-Agent': 'xiajierche-blog-admin',
 			// GitHub currently documents this as its stable REST API version.
 			'X-GitHub-Api-Version': '2022-11-28',
 		},
