@@ -27,6 +27,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 			<hr />
 			<form id="image-form"><label>给文章上传配图<input name="image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" required /></label><button type="submit" class="quiet">上传图片并插入正文</button></form>
+			<hr />
+			<section class="published-posts"><div class="editor-heading"><div><h2>已发布文章</h2><p>删除后无法从后台恢复，请确认后操作。</p></div><button id="refresh-posts" class="quiet" type="button">刷新列表</button></div><div id="published-posts" class="post-list"><p>正在读取文章列表…</p></div></section>
 			<p id="status" class="status" aria-live="polite"></p>
 		</section>
 	</div>
@@ -38,6 +40,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 	const status = document.querySelector('#status');
 	const content = document.querySelector('textarea[name="content"]');
 	const date = document.querySelector('input[name="pubDate"]');
+	const publishedPosts = document.querySelector('#published-posts');
 
 	date.value = new Date().toISOString().slice(0, 10);
 	function tell(message, problem = false) {
@@ -48,6 +51,20 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 		loginPanel.hidden = authenticated;
 		editorPanel.hidden = !authenticated;
 	}
+	function renderPosts(posts) {
+		publishedPosts.replaceChildren();
+		if (!posts.length) { publishedPosts.textContent = '还没有已发布的文章。'; return; }
+		for (const post of posts) {
+			const row = document.createElement('div'); row.className = 'post-row';
+			const link = document.createElement('a'); link.href = `/blog/${post.category}/${post.slug}/`; link.textContent = `${post.categoryName} · ${post.slug}`; link.target = '_blank'; link.rel = 'noreferrer';
+			const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'danger'; remove.textContent = '删除'; remove.dataset.category = post.category; remove.dataset.slug = post.slug;
+			row.append(link, remove); publishedPosts.append(row);
+		}
+	}
+	async function loadPosts() {
+		try { const data = await request('/api/posts'); renderPosts(data.posts || []); }
+		catch (error) { publishedPosts.textContent = error.message; }
+	}
 	async function request(url, options = {}) {
 		const response = await fetch(url, options);
 		const data = await response.json().catch(() => ({}));
@@ -55,14 +72,14 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 		return data;
 	}
 
-	request('/api/session').then((data) => showEditor(data.authenticated)).catch(() => showEditor(false));
+	request('/api/session').then((data) => { showEditor(data.authenticated); if (data.authenticated) loadPosts(); }).catch(() => showEditor(false));
 
 	document.querySelector('#login-form').addEventListener('submit', async (event) => {
 		event.preventDefault();
 		const form = new FormData(event.currentTarget);
 		try {
 			await request('/api/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ password: form.get('password') }) });
-			showEditor(true); tell('登录成功。'); event.currentTarget.reset();
+			showEditor(true); loadPosts(); tell('登录成功。'); event.currentTarget.reset();
 		} catch (error) { tell(error.message, true); }
 	});
 
@@ -91,8 +108,17 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 		tell('正在发布文章…');
 		try {
 			const result = await request('/api/posts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) });
-			tell(`文章已发送。大约一分钟后可在 ${result.url} 查看。`); form.reset(); date.value = new Date().toISOString().slice(0, 10);
+			tell(`文章已发送。大约一分钟后可在 ${result.url} 查看。`); form.reset(); date.value = new Date().toISOString().slice(0, 10); loadPosts();
 		} catch (error) { tell(error.message, true); }
+	});
+
+	document.querySelector('#refresh-posts').addEventListener('click', loadPosts);
+	publishedPosts.addEventListener('click', async (event) => {
+		const button = event.target.closest('button[data-category]');
+		if (!button || !confirm(`确定删除文章“${button.dataset.slug}”吗？此操作无法撤销。`)) return;
+		button.disabled = true; tell('正在删除文章…');
+		try { await request('/api/posts', { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify(button.dataset) }); tell('文章已删除，网站将在重新部署后更新。'); loadPosts(); }
+		catch (error) { tell(error.message, true); button.disabled = false; }
 	});
 </script>
 
@@ -114,5 +140,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 	hr { border: 0; border-top: 1px solid var(--line); margin: 32px 0; }
 	.status { min-height: 1.5em; margin: 20px 0 0; color: var(--accent); }
 	.status.problem { color: #a23d2b; }
+	.post-list { display: grid; gap: 10px; }
+	.post-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px; border: 1px solid var(--line); border-radius: 7px; background: #fffdfa; }
+	.post-row a { color: var(--ink); overflow-wrap: anywhere; }
+	button.danger { background: #a23d2b; }
 	@media (max-width: 680px) { .panel { padding: 22px; } .form-grid, .editor-heading { grid-template-columns: 1fr; } .editor-heading .quiet { justify-self: start; } }
 </style>

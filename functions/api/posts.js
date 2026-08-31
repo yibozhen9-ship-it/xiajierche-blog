@@ -1,5 +1,5 @@
 import { hasValidSession, json } from '../_lib/auth.js';
-import { writeFile } from '../_lib/github.js';
+import { deleteFile, listFiles, writeFile } from '../_lib/github.js';
 
 function safeText(value, limit) {
 	return typeof value === 'string' ? value.trim().slice(0, limit) : '';
@@ -10,6 +10,28 @@ function createSlug(value) {
 }
 
 const categories = { daily: '日常', misc: '杂七杂八' };
+
+function validSlug(value) {
+	const slug = safeText(value, 100).toLowerCase();
+	return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) ? slug : '';
+}
+
+export async function onRequestGet({ request, env }) {
+	if (!(await hasValidSession(request, env))) return json({ error: '请先登录。' }, 401);
+	try {
+		const groups = await Promise.all(Object.entries(categories).map(async ([key, category]) => {
+			const files = await listFiles(env, `src/data/blog/${key}`);
+			return files.filter((file) => file.type === 'file' && typeof file.name === 'string' && file.name.endsWith('.md')).map((file) => ({
+				category: key,
+				categoryName: category,
+				slug: file.name.slice(0, -3),
+			}));
+		}));
+		return json({ posts: groups.flat().sort((left, right) => right.slug.localeCompare(left.slug)) });
+	} catch (error) {
+		return json({ error: error instanceof Error ? error.message : '无法读取文章列表。' }, 500);
+	}
+}
 
 export async function onRequestPost({ request, env }) {
 	if (!(await hasValidSession(request, env))) return json({ error: '请先登录。' }, 401);
@@ -32,5 +54,20 @@ export async function onRequestPost({ request, env }) {
 		return json({ ok: true, url: `/blog/${categoryKey}/${slug}/` });
 	} catch (error) {
 		return json({ error: error instanceof Error ? error.message : '发布失败。' }, 500);
+	}
+}
+
+export async function onRequestDelete({ request, env }) {
+	if (!(await hasValidSession(request, env))) return json({ error: '请先登录。' }, 401);
+	try {
+		const data = await request.json();
+		const categoryKey = safeText(data.category, 16);
+		const category = categories[categoryKey];
+		const slug = validSlug(data.slug);
+		if (!category || !slug) return json({ error: '文章信息无效，删除已取消。' }, 400);
+		await deleteFile(env, `src/data/blog/${categoryKey}/${slug}.md`, `删除${category}：${slug}`);
+		return json({ ok: true });
+	} catch (error) {
+		return json({ error: error instanceof Error ? error.message : '删除失败。' }, 500);
 	}
 }
