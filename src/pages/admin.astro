@@ -71,25 +71,27 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 	});
 
 	document.querySelector('#image-form').addEventListener('submit', async (event) => {
-		event.preventDefault(); tell('正在上传图片…');
+		event.preventDefault();
+		const form = event.currentTarget;
+		tell('正在上传图片…');
 		try {
-			const uploadData = new FormData(event.currentTarget);
+			const uploadData = new FormData(form);
 			const data = await request('/api/uploads', { method: 'POST', body: uploadData });
 			const markdown = `\n\n![图片说明](${data.path})\n\n`;
 			content.setRangeText(markdown, content.selectionStart, content.selectionEnd, 'end');
-			tell('图片已上传，已把插图代码放进正文。请把“图片说明”改成图片内容。'); event.currentTarget.reset();
+			tell('图片已上传，已把插图代码放进正文。请把“图片说明”改成图片内容。'); form.reset();
 		} catch (error) { tell(error.message, true); }
 	});
 
 	document.querySelector('#post-form').addEventListener('submit', async (event) => {
 		event.preventDefault();
-		const form = new FormData(event.currentTarget);
-		const data = Object.fromEntries(form);
+		const form = event.currentTarget;
+		const data = Object.fromEntries(new FormData(form));
 		data.tags = String(data.tags).split(/[,，]/).map((tag) => tag.trim()).filter(Boolean);
 		tell('正在发布文章…');
 		try {
 			const result = await request('/api/posts', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(data) });
-			tell(`文章已发送。大约一分钟后可在 ${result.url} 查看。`); event.currentTarget.reset(); date.value = new Date().toISOString().slice(0, 10);
+			tell(`文章已发送。大约一分钟后可在 ${result.url} 查看。`); form.reset(); date.value = new Date().toISOString().slice(0, 10);
 		} catch (error) { tell(error.message, true); }
 	});
 </script>
