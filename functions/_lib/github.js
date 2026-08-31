@@ -34,7 +34,8 @@ export async function writeFile(env, path, content, message) {
 		throw new Error('GitHub 发布凭证无效或已过期。请重新粘贴一个有效的 token。');
 	}
 	if (response.status === 403) {
-		throw new Error('GitHub 拒绝了发布请求。请确认 token 已授权此仓库，并拥有“Contents: Read and write”权限。');
+		const reason = typeof error.message === 'string' && error.message ? `（GitHub：${error.message}）` : '';
+		throw new Error(`GitHub 拒绝了发布请求。请确认 Cloudflare 中保存的是最新 token，且它已授权此仓库并拥有“Contents: Read and write”权限。${reason}`);
 	}
 	if (response.status === 404) {
 		throw new Error('找不到目标 GitHub 仓库，或当前 token 没有访问该仓库的权限。');
