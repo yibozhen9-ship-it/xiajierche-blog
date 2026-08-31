@@ -52,8 +52,9 @@ export async function writeFile(env, path, content, message) {
 	return throwGithubError(response, '这个文章链接名已存在，请换一个。');
 }
 
-export async function listFiles(env, path) {
+export async function listFiles(env, path, allowMissing = false) {
 	const response = await fetch(`${contentUrl(path)}?ref=main`, { headers: headers(tokenFor(env)) });
+	if (response.status === 404 && allowMissing) return [];
 	if (!response.ok) return throwGithubError(response);
 	const data = await response.json();
 	return Array.isArray(data) ? data : [];

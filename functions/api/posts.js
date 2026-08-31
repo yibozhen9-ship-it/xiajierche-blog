@@ -20,7 +20,7 @@ export async function onRequestGet({ request, env }) {
 	if (!(await hasValidSession(request, env))) return json({ error: '请先登录。' }, 401);
 	try {
 		const groups = await Promise.all(Object.entries(categories).map(async ([key, category]) => {
-			const files = await listFiles(env, `src/data/blog/${key}`);
+			const files = await listFiles(env, `src/data/blog/${key}`, true);
 			return files.filter((file) => file.type === 'file' && typeof file.name === 'string' && file.name.endsWith('.md')).map((file) => ({
 				category: key,
 				categoryName: category,
